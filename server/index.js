@@ -2,7 +2,7 @@ require("dotenv").config();
 
 const express = require("express");
 const mongoose = require("mongoose");
-const users = require("./model/usersModel.js");
+const User = require("./model/usersModel");
 const cors = require("cors");
 const session = require("express-session");
 const passport = require("passport");
@@ -13,17 +13,18 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-app.use(
-  cors({
-    origin: process.env.frontend_url,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-    credentials: true,
-  })
-);
+app.use(cors());
 
-mongoose.connect("mongodb://127.0.0.1:27017/test")
-  .then(() => console.log("Database Connected"))
-  .catch((err) => console.log("error:", err));
+async function connectDB() {
+  try {
+    mongoose.connect(process.env.MONGO_URL)
+    console.log("Connect Database successfully")
+  } catch (error) {
+    console.log("Cannot connect to database",error);
+  }
+}
+
+connectDB();
 
 app.use(
   session({
@@ -46,13 +47,13 @@ passport.use(
     },
     async function (accessToken, refreshToken, profile, done) {
       try {
-        let user = await users.findOne({ googleid: profile.id });
+        let user = await User.findOne({ google_id: profile.id });
         if (!user) {
-          user = new users({
-            googleid: profile.id,
+          user = new User({
+            google_id: profile.id,
             name: profile.displayName,
             email: profile.email,
-            image: profile. picture,
+            image: profile.picture,
           });
           await user.save();
         }
@@ -70,7 +71,8 @@ passport.serializeUser(function (user, done) {
 
 passport.deserializeUser(async function (id, done) {
   try {
-    const user = await users.findById(id);
+    const user = await User.findById(id);
+    console.log(user)
     done(null, user);
   } catch (err) {
     done(err, null);
@@ -85,21 +87,22 @@ app.get(
 app.get(
   "/auth/google/callback",
   passport.authenticate("google", {
-    successRedirect: `${process.env.frontend_url}/show`,
-    failureRedirect: `${process.env.frontend_url}/login`,
+    successRedirect: `${process.env.frontend}/show`,
+    failureRedirect: `${process.env.frontend}/login`,
   })
 );
 
-app.get("/user",async (req,res)=>{
-    if(req.user){
-        res.status(200).json({
-            msg:"User Login Successfully",
-            userData:req.user
-        })
-    }else{
-        res.status(400).json("User not login")
-    }
-})
+app.get("/user", async (req, res) => {
+  console.log(req.user)
+  if (req.user) {
+    res.status(200).json({
+      msg: "User Login Successfully",
+      userData: req.user,
+    });
+  } else {
+    res.status(400).json("User not login");
+  }
+});
 
 app.get("/", (req, res) => {
   res.send("Hello, World!");

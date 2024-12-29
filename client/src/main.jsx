@@ -5,12 +5,14 @@ import './index.css'
 import {createBrowserRouter, createRoutesFromElements, Route, RouterProvider} from "react-router-dom";
 import Enter from './components/Enter.jsx';
 import Show from './components/Show.jsx';
+import NotFound from './components/NotFound.jsx';
 
 const router = createBrowserRouter(
   createRoutesFromElements(
     <Route path="/" element={<App />} >
       <Route path="login" element={<Enter />} />
       <Route path="show" element={<Show />} />
+      <Route path="*" element={<NotFound />} />
     </Route>
   )
 )
